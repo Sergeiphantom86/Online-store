@@ -1,0 +1,11 @@
+public class Shop
+{
+    private readonly IWarehouse _warehouse;
+
+    public Shop(IWarehouse warehouse)
+    {
+        _warehouse = warehouse;
+    }
+
+    public Cart Cart() => new Cart(_warehouse);
+}
