@@ -57,6 +57,13 @@ public class Warehouse
     }
 }
 
+public interface IWarehouse
+{
+    int GetQuantity(Good good);
+
+    void Remove(Good good, int quantity);
+}
+
 public class Shop
 {
     private readonly Warehouse _warehouse;
