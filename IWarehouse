@@ -1,6 +1,0 @@
-public interface IWarehouse
-{
-    int GetQuantity(Good good);
-
-    void Remove(Good good, int quantity);
-}
