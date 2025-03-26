@@ -2,8 +2,8 @@ internal class Program
 {
     private static void Main(string[] args)
     {
-        Good iPhone12 = new Good("IPhone 12");
-        Good iPhone11 = new Good("IPhone 11");
+        Goods iPhone12 = new Goods("IPhone 12");
+        Goods iPhone11 = new Goods("IPhone 11");
 
         Warehouse warehouse = new Warehouse();
 
@@ -12,12 +12,152 @@ internal class Program
         warehouse.Delive(iPhone12, 10);
         warehouse.Delive(iPhone11, 1);
 
+        warehouse.ShowAllItems();
+
         Cart cart = shop.Cart();
         cart.Add(iPhone12, 4);
         cart.Add(iPhone11, 3);
 
+        cart.ShowAllItems();
+
         Console.WriteLine(cart.Order().Paylink);
 
         cart.Add(iPhone12, 9);
+    }
+}
+
+public interface ICompositeInventory
+{
+    void ShowAllItems();
+}
+
+public interface IWarehouse
+{
+    int GetQuantity(Goods good);
+
+    void Remove(Goods good, int quantity);
+}
+
+public class Order
+{
+    public string Paylink { get; } = Guid.NewGuid().ToString();
+}
+
+public class Goods
+{
+    public Goods(string name)
+    {
+        Name = name;
+    }
+
+    public string Name { get; private set; }
+}
+
+public class Shop
+{
+    private readonly Warehouse _warehouse;
+
+    public Shop(Warehouse warehouse)
+    {
+        _warehouse = warehouse ?? throw new ArgumentNullException(nameof(warehouse));
+    }
+
+    public Cart Cart() => new Cart(_warehouse);
+}
+
+public class Warehouse : IWarehouse, ICompositeInventory
+{
+    private readonly Dictionary<Goods, int> _goods = new Dictionary<Goods, int>();
+
+    public void ShowAllItems()
+    {
+        foreach (var (goods, quantity) in _goods)
+        {
+            Console.WriteLine($"{goods.Name}: {quantity} шт.");
+        }
+    }
+
+    public void Delive(Goods goods, int quantity)
+    {
+        if (quantity < 0)
+            throw new ArgumentException("Количество не может быть отрицательным.");
+
+        goods = goods ?? throw new ArgumentNullException(nameof(goods));
+
+        _goods[goods] = _goods.GetValueOrDefault(goods, 0) + quantity;
+    }
+
+    public int GetQuantity(Goods goods)
+    {
+        goods = goods ?? throw new ArgumentNullException(nameof(goods));
+
+        return _goods.GetValueOrDefault(goods, 0);
+    }
+
+    public void Remove(Goods goods, int quantity)
+    {
+        goods = goods ?? throw new ArgumentNullException(nameof(goods));
+
+        if (quantity < 0)
+            throw new ArgumentException("Количество не может быть отрицательным.");
+
+        var currentQuantity = _goods.GetValueOrDefault(goods, 0);
+
+        if (currentQuantity < quantity)
+            throw new InvalidOperationException($"Недостаточно {goods.Name} на складе.");
+
+        _goods[goods] = currentQuantity - quantity;
+    }
+}
+
+public class Cart : ICompositeInventory
+{
+    private readonly IWarehouse _warehouse;
+    private readonly Dictionary<Goods, int> _goods = new Dictionary<Goods, int>();
+
+    public Cart(IWarehouse warehouse)
+    {
+        _warehouse = warehouse ?? throw new ArgumentNullException(nameof(warehouse));
+    }
+
+    public bool IsOrdered { get; private set; }
+
+    public void Add(Goods goods, int quantity)
+    {
+        goods = goods ?? throw new ArgumentNullException(nameof(goods));
+
+        if (quantity < 0)
+            throw new ArgumentException("Количество не может быть отрицательным.");
+
+        if (IsOrdered)
+            throw new InvalidOperationException("Заказ уже оформлен!!!");
+
+        int current = _goods.GetValueOrDefault(goods, 0);
+        int available = _warehouse.GetQuantity(goods);
+
+        if (current + quantity > available)
+            throw new InvalidOperationException($"Недостаточно {goods.Name} на складе.");
+
+        _goods[goods] = current + quantity;
+    }
+
+    public void ShowAllItems()
+    {
+        foreach (var (goods, quantity) in _goods)
+        {
+            Console.WriteLine($"{goods.Name}: {quantity} шт.");
+        }
+    }
+
+    public Order Order()
+    {
+        if (IsOrdered)
+            throw new InvalidOperationException("Заказ уже оформлен!!!");
+
+        foreach (var (goods, quantity) in _goods)
+            _warehouse.Remove(goods, quantity);
+
+        IsOrdered = true;
+        return new Order();
     }
 }
