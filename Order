@@ -1,4 +1,0 @@
-public class Order
-{
-    public string Paylink { get; } = Guid.NewGuid().ToString();
-}
